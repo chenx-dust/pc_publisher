@@ -15,6 +15,7 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(Boost COMPONENTS date_time filesystem iostreams REQUIRED)
 
+# pc_record_pub
 add_executable(pc_record_pub)
 ament_target_dependencies(pc_record_pub
   rclcpp
@@ -30,6 +31,24 @@ target_include_directories(pc_record_pub PUBLIC
 target_compile_features(pc_record_pub PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
 install(TARGETS pc_record_pub
+  DESTINATION lib/${PROJECT_NAME})
+
+# pc_lidar_pub
+add_executable(pc_lidar_pub)
+ament_target_dependencies(pc_lidar_pub
+  rclcpp
+  std_msgs
+  sensor_msgs
+  Boost
+)
+
+target_sources(pc_lidar_pub PRIVATE src/RecordPub.cpp)
+target_include_directories(pc_lidar_pub PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(pc_lidar_pub PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+
+install(TARGETS pc_lidar_pub
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
