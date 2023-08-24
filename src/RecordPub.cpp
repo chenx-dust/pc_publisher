@@ -57,7 +57,7 @@ public:
         std::string record_filename = get_parameter("record_file").as_string();
         bool use_zstd = get_parameter("use_zstd").as_bool();
 
-        RCLCPP_INFO(get_logger(), "Params: record_file: %s, use_zstd: %d",
+        RCLCPP_INFO(get_logger(), "PcRecordPublisher: Params: record_file: %s, use_zstd: %d",
             record_filename.c_str(), use_zstd);
         if (record_filename.empty()) {
             RCLCPP_ERROR(get_logger(), "record_file is empty");
@@ -70,7 +70,7 @@ public:
             in->push(boost::iostreams::zstd_decompressor());
         file = std::make_shared<boost::iostreams::file_source>(record_filename, std::ios_base::in | std::ios_base::binary);
         in->push(*file);
-        RCLCPP_INFO(get_logger(), "%s file opened", record_filename.c_str());
+        RCLCPP_INFO(get_logger(), "PcRecordPublisher: %s file opened", record_filename.c_str());
         recv_thread = std::thread(&PcRecordPublisher::recv_spin, this);
     }
 };

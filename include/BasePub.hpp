@@ -16,10 +16,6 @@
 #include <thread>
 
 using namespace boost::endian;
-constexpr size_t msg_size = 1380;
-constexpr size_t dot_num = 96;
-constexpr size_t line_num = 6; // HAP
-const std::string frame_id = "livox_frame";
 
 // 以下是 Livox 激光雷达接受到的数据包结构
 #pragma pack(push, 1)
@@ -60,9 +56,15 @@ typedef struct {
 
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
+constexpr size_t msg_size = 1380;
+constexpr size_t dot_num = 96;
+const std::string frame_id = "livox_frame";
+const std::string pc_topic = "/pc_raw";
 
 class PcBasePublisher : public rclcpp::Node {
 protected:
+    int line_num = 6;
+
     rclcpp::Publisher<PointCloud2>::SharedPtr pub;
 
     rclcpp::TimerBase::SharedPtr timer;
@@ -174,19 +176,19 @@ public:
         : Node(node_name)
     {
         RCLCPP_INFO(get_logger(), "PcBasePublisher: Initializing");
-        declare_parameter("pc_topic", "/pc_raw");
         declare_parameter("pub_interval_ms", 20);
+        declare_parameter("lidar_line", 6);
 
-        std::string pc_topic = get_parameter("pc_topic").as_string();
         int pub_interval_ms = get_parameter("pub_interval_ms").as_int();
+        line_num = get_parameter("lidar_line").as_int();
 
-        RCLCPP_INFO(get_logger(), "PcBasePublisher: Params: pc_topic: %s, pub_interval_ms: %d",
-            pc_topic.c_str(), pub_interval_ms);
+        RCLCPP_INFO(get_logger(), "PcBasePublisher: Params: pub_interval_ms: %d, line_num: %d",
+            pub_interval_ms, line_num);
 
         // 初始化
         pub = create_publisher<PointCloud2>(pc_topic, 10);
         timer = create_wall_timer(
-            std::chrono::milliseconds(get_parameter("pub_interval_ms").as_int()),
+            std::chrono::milliseconds(pub_interval_ms),
             std::bind(&PcBasePublisher::timer_callback, this));
     }
 };
