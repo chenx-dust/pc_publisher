@@ -186,7 +186,7 @@ public:
             pub_interval_ms, line_num);
 
         // 初始化
-        pub = create_publisher<PointCloud2>(pc_topic, 10);
+        pub = create_publisher<PointCloud2>(pc_topic, rclcpp::SensorDataQoS());
         timer = create_wall_timer(
             std::chrono::milliseconds(pub_interval_ms),
             std::bind(&PcBasePublisher::timer_callback, this));
