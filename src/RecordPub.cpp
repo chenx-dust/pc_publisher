@@ -43,6 +43,7 @@ private:
                 }
             }
         }
+        RCLCPP_INFO(get_logger(), "PcRecordPublisher: EOF");
         rclcpp::shutdown();
     }
 
