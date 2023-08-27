@@ -50,6 +50,8 @@ target_compile_features(pc_lidar_pub PUBLIC c_std_99 cxx_std_17)  # Require C99 
 
 install(TARGETS pc_lidar_pub
   DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

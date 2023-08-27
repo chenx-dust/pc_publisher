@@ -59,7 +59,7 @@ using sensor_msgs::msg::PointField;
 constexpr size_t msg_size = 1380;
 constexpr size_t dot_num = 96;
 const std::string frame_id = "livox_frame";
-const std::string pc_topic = "/pc_raw";
+const std::string pc_topic = "pc_raw";
 
 class PcBasePublisher : public rclcpp::Node {
 protected:
@@ -186,7 +186,7 @@ public:
             pub_interval_ms, line_num);
 
         // 初始化
-        pub = create_publisher<PointCloud2>(pc_topic, rclcpp::SensorDataQoS());
+        pub = create_publisher<PointCloud2>(pc_topic, rclcpp::SystemDefaultsQoS());
         timer = create_wall_timer(
             std::chrono::milliseconds(pub_interval_ms),
             std::bind(&PcBasePublisher::timer_callback, this));
