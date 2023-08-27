@@ -7,8 +7,11 @@ Panels:
         - /Global Options1
         - /Status1
         - /PointCloud21
+        - /PointCloud21/Topic1
         - /TF1
         - /TF1/Frames1
+        - /Marker1
+        - /Marker1/Topic1
       Splitter Ratio: 0.5
     Tree Height: 727
   - Class: rviz_common/Selection
@@ -66,14 +69,14 @@ Visualization Manager:
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.10000000149011612
       Style: Flat Squares
       Topic:
         Depth: 5
         Durability Policy: Volatile
         Filter size: 10
         History Policy: Keep Last
-        Reliability Policy: Reliable
+        Reliability Policy: Best Effort
         Value: /radar/pc_raw
       Use Fixed Frame: true
       Use rainbow: true
@@ -100,6 +103,19 @@ Visualization Manager:
             livox_frame:
               {}
       Update Interval: 0
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        radar: true
+      Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /radar/background
       Value: true
   Enabled: true
   Global Options:
@@ -145,25 +161,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 28.81259536743164
+      Distance: 34.764137268066406
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 9.456445693969727
-        Y: 7.8620381355285645
-        Z: 1.1921076774597168
+        X: 12.33797550201416
+        Y: 9.707380294799805
+        Z: -1.4970306158065796
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4153974056243896
+      Pitch: 0.8397955298423767
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.1754560470581055
+      Yaw: 3.1654891967773438
     Saved: ~
 Window Geometry:
   Displays:
