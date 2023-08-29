@@ -3,6 +3,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
+#include <radar_interface/livox_struct.hpp>
 
 #include <array>
 #include <boost/endian/arithmetic.hpp>
@@ -16,6 +17,7 @@
 #include <thread>
 
 using namespace boost::endian;
+using radar_interface::LivoxPointXyzrtlt;
 
 // 以下是 Livox 激光雷达接受到的数据包结构
 #pragma pack(push, 1)
@@ -41,17 +43,6 @@ struct pcd1 {
     little_uint8_t tag;
 };
 using pcd1_span = std::array<struct pcd1, 96>;
-
-// 以下是用于对接 Livox 官方提供的现成代码的数据结构
-typedef struct {
-    float x; /**< X axis, Unit:m */
-    float y; /**< Y axis, Unit:m */
-    float z; /**< Z axis, Unit:m */
-    float reflectivity; /**< Reflectivity   */
-    uint8_t tag; /**< Livox point tag   */
-    uint8_t line; /**< Laser line id     */
-    double timestamp; /**< Timestamp of point*/
-} LivoxPointXyzrtlt;
 #pragma pack(pop)
 
 using sensor_msgs::msg::PointCloud2;
