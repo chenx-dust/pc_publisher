@@ -1,3 +1,5 @@
+#pragma once
+
 #include "pc_publisher/BasePub.hpp"
 
 #include <boost/asio.hpp>
@@ -8,9 +10,9 @@ private:
     boost::asio::io_context ctx;
     std::optional<boost::asio::ip::udp::socket> socket;
 
-    void recv_spin() final
+    void recv_spin()
     {
-        std::array<unsigned char, msg_size> recv_buf;
+        std::array<unsigned char, pc_msg_size> recv_buf;
         boost::system::error_code error;
         std::size_t recv_length = 0;
         while (rclcpp::ok() && socket->is_open()) {
@@ -25,19 +27,29 @@ private:
                 socket->cancel();
                 ctx.run();
             }
-            if (recv_length != msg_size) {
-                RCLCPP_ERROR(get_logger(), "Wrong receive length: %lu, error: %s (Timeout?)", recv_length, error.message().c_str());
-                continue;
-            }
             if (error && error != boost::asio::error::message_size) {
                 RCLCPP_ERROR(get_logger(), "Receiver error: %s", error.message().c_str());
                 continue;
             }
 
             auto header = reinterpret_cast<struct header*>(recv_buf.data());
-
-            auto data = reinterpret_cast<pcd1_span*>(recv_buf.data() + sizeof(struct header));
-            proccess_data(*header, *data);
+            if (header->data_type.value() == msg_type::MSG_IMU && header->length.value() == imu_msg_size) {
+                if (check_header_imu(*header)) {
+                    RCLCPP_ERROR(get_logger(), "Wrong imu header");
+                    return;
+                }
+                auto data = reinterpret_cast<imu*>(recv_buf.data() + sizeof(struct header));
+                proccess_imu(*header, *data);
+            } else if (header->data_type.value() == msg_type::MSG_PCD1 && header->length.value() == pc_msg_size) {
+                if (check_header_pcd1(*header)) {
+                    RCLCPP_ERROR(get_logger(), "Wrong pcd1 header");
+                    return;
+                }
+                auto data = reinterpret_cast<pcd1_span*>(recv_buf.data() + sizeof(struct header));
+                proccess_pcd1(*header, *data);
+            } else {
+                RCLCPP_ERROR(get_logger(), "Wrong data_type: %d, length: %d", header->data_type.value(), header->length.value());
+            }
         }
     }
 

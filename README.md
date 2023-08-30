@@ -36,5 +36,6 @@ launch:
     ```
 
 - `pub_interval_ms` (`int`): 发布时间间隔，单位 ms
-- `listen_port` (`int`): 监听端口，一般不用改
+- `pc_listen_port` (`int`): 点云监听端口
+- `imu_listen_port` (`int`): IMU 监听端口
 - `timeout_ms` (`int`): 监听超时，单位 ms

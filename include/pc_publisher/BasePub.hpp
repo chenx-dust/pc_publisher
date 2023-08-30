@@ -3,6 +3,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 #include <radar_interface/livox_struct.hpp>
 
 #include <array>
@@ -14,6 +15,7 @@
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <thread>
 
 using namespace boost::endian;
@@ -43,33 +45,51 @@ struct pcd1 {
     little_uint8_t tag;
 };
 using pcd1_span = std::array<struct pcd1, 96>;
+struct imu {
+    little_float32_t gyro_x;
+    little_float32_t gyro_y;
+    little_float32_t gyro_z;
+    little_float32_t acc_x;
+    little_float32_t acc_y;
+    little_float32_t acc_z;
+};
 #pragma pack(pop)
 
+enum msg_type {
+    MSG_IMU = 0,
+    MSG_PCD1 = 1,
+    MSG_PCD2 = 2,   // 不使用
+};
+
+using sensor_msgs::msg::Imu;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
-constexpr size_t msg_size = 1380;
+constexpr size_t pc_msg_size = 1380;
+constexpr size_t imu_msg_size = 60;
 constexpr size_t dot_num = 96;
 const std::string frame_id = "livox_frame";
 const std::string pc_topic = "pc_raw";
+const std::string imu_topic = "imu_raw";
 
 class PcBasePublisher : public rclcpp::Node {
 protected:
     int line_num = 6;
 
-    rclcpp::Publisher<PointCloud2>::SharedPtr pub;
+    rclcpp::Publisher<PointCloud2>::SharedPtr pc_pub;
+    rclcpp::Publisher<Imu>::SharedPtr imu_pub;
 
     rclcpp::TimerBase::SharedPtr timer;
     std::thread recv_thread;
     boost::lockfree::spsc_queue<LivoxPointXyzrtlt> pt_queue { 452000 }; // 1s buffer
 
-    bool check_header(const header& header)
+    bool check_header_pcd1(const header& header)
     {
         // TODO: check crc32
         if (header.version.value() != 0) {
             RCLCPP_ERROR(get_logger(), "header: version is not 1");
             return false;
         }
-        if (header.length.value() != msg_size) {
+        if (header.length.value() != pc_msg_size) {
             RCLCPP_ERROR(get_logger(), "header: length is not 1380");
             return false;
         }
@@ -89,7 +109,34 @@ protected:
         return true;
     }
 
-    void proccess_data(const header& header, const pcd1_span& data)
+    bool check_header_imu(const header& header)
+    {
+        // TODO: check crc32
+        if (header.version.value() != 0) {
+            RCLCPP_ERROR(get_logger(), "header: version is not 1");
+            return false;
+        }
+        if (header.length.value() != imu_msg_size) {
+            RCLCPP_ERROR(get_logger(), "header: length is not 60");
+            return false;
+        }
+        if (header.dot_num.value() != dot_num) {
+            RCLCPP_ERROR(get_logger(), "header: dot_num is not 96");
+            return false;
+        }
+        // TODO: support other data_type
+        if (header.data_type.value() != 1) {
+            RCLCPP_ERROR(get_logger(), "header: data_type is not 1");
+            return false;
+        }
+        if ((header.pack_info.value() & 0x03) != 0) {
+            RCLCPP_ERROR(get_logger(), "header: pack_info is not 0");
+            return false;
+        }
+        return true;
+    }
+
+    void proccess_pcd1(const header& header, const pcd1_span& data)
     {
         for (size_t i = 0; i < dot_num; ++i) {
             pt_queue.push({
@@ -104,44 +151,36 @@ protected:
         }
     }
 
+    void proccess_imu(const header& header, const imu& data)
+    {
+        Imu imu_msg;
+        imu_msg.header.frame_id.assign(frame_id);
+        imu_msg.header.stamp = rclcpp::Time(header.timestamp.value());
+        imu_msg.angular_velocity.x = data.gyro_x.value();
+        imu_msg.angular_velocity.y = data.gyro_y.value();
+        imu_msg.angular_velocity.z = data.gyro_z.value();
+        imu_msg.linear_acceleration.x = data.acc_x.value();
+        imu_msg.linear_acceleration.y = data.acc_y.value();
+        imu_msg.linear_acceleration.z = data.acc_z.value();
+        imu_pub->publish(imu_msg);
+    }
+
     void pc2_init_header(PointCloud2& cloud)
     {
         cloud.header.frame_id.assign(frame_id);
+        cloud.header.stamp = now();
         cloud.height = 1;
         cloud.width = 0;
-        cloud.fields.resize(7);
-        cloud.fields[0].offset = 0;
-        cloud.fields[0].name = "x";
-        cloud.fields[0].count = 1;
-        cloud.fields[0].datatype = PointField::FLOAT32;
-        cloud.fields[1].offset = 4;
-        cloud.fields[1].name = "y";
-        cloud.fields[1].count = 1;
-        cloud.fields[1].datatype = PointField::FLOAT32;
-        cloud.fields[2].offset = 8;
-        cloud.fields[2].name = "z";
-        cloud.fields[2].count = 1;
-        cloud.fields[2].datatype = PointField::FLOAT32;
-        cloud.fields[3].offset = 12;
-        cloud.fields[3].name = "intensity";
-        cloud.fields[3].count = 1;
-        cloud.fields[3].datatype = PointField::FLOAT32;
-        cloud.fields[4].offset = 16;
-        cloud.fields[4].name = "tag";
-        cloud.fields[4].count = 1;
-        cloud.fields[4].datatype = PointField::UINT8;
-        cloud.fields[5].offset = 17;
-        cloud.fields[5].name = "line";
-        cloud.fields[5].count = 1;
-        cloud.fields[5].datatype = PointField::UINT8;
-        cloud.fields[6].offset = 18;
-        cloud.fields[6].name = "timestamp";
-        cloud.fields[6].count = 1;
-        cloud.fields[6].datatype = PointField::FLOAT64;
-        cloud.point_step = sizeof(LivoxPointXyzrtlt);
+        sensor_msgs::PointCloud2Modifier modifier(cloud);
+        modifier.setPointCloud2Fields(7,
+            "x", 1, PointField::FLOAT32,
+            "y", 1, PointField::FLOAT32,
+            "z", 1, PointField::FLOAT32,
+            "intensity", 1, PointField::FLOAT32,
+            "tag", 1, PointField::UINT8,
+            "line", 1, PointField::UINT8,
+            "timestamp", 1, PointField::FLOAT64);
     }
-
-    virtual void recv_spin() = 0;
 
     void timer_callback()
     {
@@ -159,7 +198,9 @@ protected:
             pt_queue.pop(data[i]);
         }
 
-        pub->publish(cloud);
+        sensor_msgs::PointCloud2Iterator<float> iter_x(cloud, "x");
+
+        pc_pub->publish(cloud);
     }
 
 public:
@@ -177,7 +218,7 @@ public:
             pub_interval_ms, line_num);
 
         // 初始化
-        pub = create_publisher<PointCloud2>(pc_topic, rclcpp::SensorDataQoS());
+        pc_pub = create_publisher<PointCloud2>(pc_topic, rclcpp::SystemDefaultsQoS());
         timer = create_wall_timer(
             std::chrono::milliseconds(pub_interval_ms),
             std::bind(&PcBasePublisher::timer_callback, this));

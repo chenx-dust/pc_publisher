@@ -1,3 +1,5 @@
+#pragma once
+
 #include "BasePub.hpp"
 
 #include <boost/iostreams/device/file.hpp>
@@ -10,14 +12,14 @@ private:
     std::shared_ptr<boost::iostreams::filtering_istream> in;
     std::shared_ptr<boost::iostreams::file_source> file;
 
-    void recv_spin() final
+    void recv_spin()
     {
         std::array<unsigned char, 1380> recv_buf;
         while (!in->eof() && rclcpp::ok()) {
             in->read(reinterpret_cast<char*>(recv_buf.data()), recv_buf.size());
             auto header = reinterpret_cast<struct header*>(recv_buf.data());
             auto data = reinterpret_cast<pcd1_span*>(recv_buf.data() + sizeof(struct header));
-            proccess_data(*header, *data);
+            proccess_pcd1(*header, *data);
 
             if (header->time_type.value() == 0) {
                 RCLCPP_WARN_ONCE(get_logger(), "timestamp not set");
