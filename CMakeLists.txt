@@ -13,7 +13,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(radar_interface REQUIRED)
 find_package(Boost COMPONENTS date_time filesystem iostreams REQUIRED)
 
 # pc_record_pub
@@ -22,7 +21,6 @@ ament_target_dependencies(pc_record_pub
   rclcpp
   std_msgs
   sensor_msgs
-  radar_interface
   Boost
 )
 
@@ -41,7 +39,6 @@ ament_target_dependencies(pc_lidar_pub
   rclcpp
   std_msgs
   sensor_msgs
-  radar_interface
   Boost
 )
 
@@ -63,7 +60,7 @@ target_include_directories(pc_publisher INTERFACE
 "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 ament_export_include_directories("include/${PROJECT_NAME}")
 ament_export_libraries(pc_publisher HAS_LIBRARY_TARGET)
-ament_export_dependencies(rclcpp std_msgs sensor_msgs radar_interface Boost)
+ament_export_dependencies(rclcpp std_msgs sensor_msgs Boost)
 install(DIRECTORY include/
   DESTINATION include/${PROJECT_NAME}
 )

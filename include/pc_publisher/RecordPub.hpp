@@ -12,13 +12,12 @@ private:
     std::shared_ptr<boost::iostreams::filtering_istream> in;
     std::shared_ptr<boost::iostreams::file_source> file;
 
-    void recv_spin()
-    {
+    void recv_spin() {
         std::array<unsigned char, 1380> recv_buf;
         while (!in->eof() && rclcpp::ok()) {
             in->read(reinterpret_cast<char*>(recv_buf.data()), recv_buf.size());
-            auto header = reinterpret_cast<struct header*>(recv_buf.data());
-            auto data = reinterpret_cast<pcd1_span*>(recv_buf.data() + sizeof(struct header));
+            auto header = reinterpret_cast<livox_proto::header*>(recv_buf.data());
+            auto data = reinterpret_cast<livox_proto::pcd1_span*>(recv_buf.data() + sizeof(livox_proto::header));
             proccess_pcd1(*header, *data);
 
             if (header->time_type.value() == 0) {
@@ -51,8 +50,7 @@ private:
 
 public:
     PcRecordPublisher()
-        : PcBasePublisher("pc_publisher")
-    {
+        : PcBasePublisher("pc_publisher") {
         RCLCPP_INFO(get_logger(), "PcRecordPublisher: Initializing");
         declare_parameter("record_file", "");
         declare_parameter("use_zstd", true);
@@ -61,7 +59,7 @@ public:
         bool use_zstd = get_parameter("use_zstd").as_bool();
 
         RCLCPP_INFO(get_logger(), "PcRecordPublisher: Params: record_file: %s, use_zstd: %d",
-            record_filename.c_str(), use_zstd);
+                    record_filename.c_str(), use_zstd);
         if (record_filename.empty()) {
             RCLCPP_ERROR(get_logger(), "record_file is empty");
             throw std::runtime_error("record_file is empty");
