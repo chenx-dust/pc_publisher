@@ -45,7 +45,7 @@ ament_target_dependencies(pc_lidar_pub
   Boost
 )
 
-target_sources(pc_lidar_pub PRIVATE src/RecordPub.cpp)
+target_sources(pc_lidar_pub PRIVATE src/LidarPub.cpp)
 target_include_directories(pc_lidar_pub PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
