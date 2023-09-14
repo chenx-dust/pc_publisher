@@ -34,14 +34,14 @@ private:
 
             auto header = reinterpret_cast<struct header*>(recv_buf.data());
             if (header->data_type.value() == msg_type::MSG_IMU && header->length.value() == imu_msg_size) {
-                if (check_header_imu(*header)) {
+                if (!check_header_imu(*header)) {
                     RCLCPP_ERROR(get_logger(), "Wrong imu header");
                     return;
                 }
                 auto data = reinterpret_cast<imu*>(recv_buf.data() + sizeof(struct header));
                 proccess_imu(*header, *data);
             } else if (header->data_type.value() == msg_type::MSG_PCD1 && header->length.value() == pc_msg_size) {
-                if (check_header_pcd1(*header)) {
+                if (!check_header_pcd1(*header)) {
                     RCLCPP_ERROR(get_logger(), "Wrong pcd1 header");
                     return;
                 }
