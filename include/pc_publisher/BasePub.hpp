@@ -20,10 +20,7 @@
 namespace pc_publisher {
 constexpr size_t pc_msg_size = 1380;
 constexpr size_t imu_msg_size = 60;
-constexpr size_t dot_num = 96;
-const std::string frame_id = "livox_frame";
-const std::string pc_topic = "pc_raw";
-const std::string imu_topic = "imu_raw";
+constexpr size_t pcd1_dot_num = 96;
 
 class PcBasePublisher : public rclcpp::Node {
 protected:
@@ -36,6 +33,10 @@ protected:
     std::thread recv_thread;
     boost::lockfree::spsc_queue<LivoxPointXyzrtlt> pt_queue{452000};  // 1s buffer
 
+    std::string frame_id;
+    std::string pc_topic;
+    std::string imu_topic;
+
     bool check_header_pcd1(const livox_proto::header& header) {
         // TODO: check crc32
         if (header.version.value() != 0) {
@@ -46,7 +47,7 @@ protected:
             RCLCPP_ERROR(get_logger(), "header: length is not 1380");
             return false;
         }
-        if (header.dot_num.value() != dot_num) {
+        if (header.dot_num.value() != pcd1_dot_num) {
             RCLCPP_ERROR(get_logger(), "header: dot_num is not 96");
             return false;
         }
@@ -72,24 +73,20 @@ protected:
             RCLCPP_ERROR(get_logger(), "header: length is not 60");
             return false;
         }
-        if (header.dot_num.value() != dot_num) {
-            RCLCPP_ERROR(get_logger(), "header: dot_num is not 96");
+        if (header.dot_num.value() != 1) {
+            RCLCPP_ERROR(get_logger(), "header: dot_num is not 1");
             return false;
         }
         // TODO: support other data_type
-        if (header.data_type.value() != 1) {
+        if (header.data_type.value() != 0) {
             RCLCPP_ERROR(get_logger(), "header: data_type is not 1");
-            return false;
-        }
-        if ((header.pack_info.value() & 0x03) != 0) {
-            RCLCPP_ERROR(get_logger(), "header: pack_info is not 0");
             return false;
         }
         return true;
     }
 
     void proccess_pcd1(const livox_proto::header& header, const livox_proto::pcd1_span& data) {
-        for (size_t i = 0; i < dot_num; ++i) {
+        for (size_t i = 0; i < pcd1_dot_num; ++i) {
             pt_queue.push({
                 data[i].x.value() / 1000.0f,
                 data[i].y.value() / 1000.0f,
@@ -155,9 +152,16 @@ public:
     PcBasePublisher(std::string node_name)
         : Node(node_name) {
         RCLCPP_INFO(get_logger(), "PcBasePublisher: Initializing");
+
+        declare_parameter("frame_id", "livox_frame");
+        declare_parameter("pc_topic", "livox/lidar");
+        declare_parameter("imu_topic", "livox/imu");
         declare_parameter("pub_interval_ms", 20);
         declare_parameter("lidar_line", 6);
 
+        frame_id = get_parameter("frame_id").as_string();
+        pc_topic = get_parameter("pc_topic").as_string();
+        imu_topic = get_parameter("imu_topic").as_string();
         int pub_interval_ms = get_parameter("pub_interval_ms").as_int();
         line_num = get_parameter("lidar_line").as_int();
 
@@ -166,6 +170,7 @@ public:
 
         // 初始化
         pc_pub = create_publisher<sensor_msgs::msg::PointCloud2>(pc_topic, rclcpp::SystemDefaultsQoS());
+        imu_pub = create_publisher<sensor_msgs::msg::Imu>(imu_topic, rclcpp::SystemDefaultsQoS());
         timer = create_wall_timer(
             std::chrono::milliseconds(pub_interval_ms),
             std::bind(&PcBasePublisher::timer_callback, this));
